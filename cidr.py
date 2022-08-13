@@ -3,6 +3,9 @@ import re # Regex
 # Pattern utilizado para verificar formato de IP
 pattern = re.compile(r"^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\/[0-9]{1,2}$")
 # Não verifica os valores dos octetos, apenas se o formato em si é válido
+# Valor mínimo e máximo do CIDR
+CIDR_MIN = 1
+CIDR_MAX = 30
 
 # Separa um ip no formato válido em octetos e CIDR
 def separate_ip(ip : str):
@@ -51,7 +54,7 @@ def check_ip_address(inputstr : str) -> bool:
             if (values[i] < 0) or (values[i] > 255):
                 raise ValueError('O valor de ' + letters[i] + ' não é válido.')
         # CIDR
-        if (values[4] < 1) or (values[4] > 31):
+        if (values[4] < CIDR_MIN) or (values[4] > CIDR_MAX):
             raise ValueError('O valor de n não é válido.')
     else:
         raise ValueError('Formato da string não é válido.')
@@ -84,3 +87,26 @@ def calculate_from_ip(ip):
     range_end = end_broadcast - 1
     # Retornando cada um dos valores calculados
     return (end_rede, end_broadcast, mascara_sub_rede, range_start, range_end)
+
+while True:
+    try:
+        inputstr = get_ip_address()
+        (end_rede,
+        end_broadcast,
+        mascara_sub_rede,
+        range_start,
+        range_end) = calculate_from_ip(inputstr)
+        print(
+f'''Endereço de rede: {group_ip(ip_from_binary(end_rede))}
+Endereço de broadcast: {group_ip(ip_from_binary(end_broadcast))}
+Máscara de sub_rede: {group_ip(ip_from_binary(mascara_sub_rede))}
+Range: {group_ip(ip_from_binary(range_start))} - {group_ip(ip_from_binary(range_end))}
+''')
+    except ValueError as e:
+        print(
+'''Ocorreu um erro, isso pode ter sido causado por:
+1 - Formatação indevida do IP,
+2 - Valores inválidos para os octetos,
+3 - Valor inválido para o CIDR (esperado é entre 1 e 31)
+Mensagem de erro:''')
+        print(e)
