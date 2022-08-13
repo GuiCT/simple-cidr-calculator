@@ -50,14 +50,11 @@ def check_ip_address(inputstr : str) -> bool:
         for i in range(4):
             if (values[i] < 0) or (values[i] > 255):
                 raise ValueError('O valor de ' + letters[i] + ' não é válido.')
-                return False
         # CIDR
         if (values[4] < 1) or (values[4] > 31):
             raise ValueError('O valor de n não é válido.')
-            return False
     else:
         raise ValueError('Formato da string não é válido.')
-        return False
     return True
 
 # Realiza um prompt pedindo pelo endereço IP, checa se o formato é válido.
@@ -74,13 +71,16 @@ def calculate_from_ip(ip):
     # Escrevendo máscara de subredes como inteiro de 32 bits
     mascara_sub_rede = '1' * cidr + '0' * (32 - cidr)
     mascara_sub_rede = int(mascara_sub_rede, 2)
+    # Máscara de sub-rede invertida
+    # (O bitwise NOT calcula o complemento de 2 do número, ao invés
+    # de inverter bit a bit).
+    not_mascara = int('1' * (32 - cidr), 2)
     # Endereço de rede
     end_rede = ip_binario & mascara_sub_rede
     # End de broadcast
-    end_broadcast = ip_binario | (~mascara_sub_rede)
+    end_broadcast = ip_binario | not_mascara
     # Inicio e fim do range
     range_start = end_rede + 1
     range_end = end_broadcast - 1
     # Retornando cada um dos valores calculados
     return (end_rede, end_broadcast, mascara_sub_rede, range_start, range_end)
-
