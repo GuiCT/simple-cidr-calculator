@@ -1,3 +1,7 @@
+# Atividade 3 - Cálculo de Endereço IPV4
+# Disciplina: Redes de Computadores I
+# Aluno: Guilherme Cesar Tomiasi
+
 import re  # Regex
 from ctypes import c_uint32  # Unsigned int utilizado para garantir
 # o funcionamento do bitwise NOT
@@ -47,12 +51,18 @@ def ip_as_binary(octets: list[int]) -> int:
         (octets[2] << 8) +
         (octets[3])
     )
+    # Realizando bit shift em cada octeto para assumirem as posições
+    # desejadas. Após isso, todos eles são somados para obter o valor
+    # final em binário (representado como inteiro pelo Python).
     return asbinary
 
 
 def ip_from_binary(ip: int) -> list[int]:
     # 11000000101010000000000000000001 -> [192, 168, 0, 1]
     octets = list([None] * 4)
+    # Realizando bit shift para a direita para obter o valor
+    # de cada octeto separadamente. Também é necessário aplicar uma
+    # máscara AND para cada um deles.
     octets[0] = ip >> 24
     octets[1] = (ip & 0b00000000111111110000000000000000) >> 16
     octets[2] = (ip & 0b00000000000000001111111100000000) >> 8
@@ -63,29 +73,40 @@ def ip_from_binary(ip: int) -> list[int]:
 
 
 def check_ip_address(inputstr: str) -> bool:
+    # Verifica se a string obedece ao Regex definido no início do script
     if pattern.match(inputstr):
         values = list([None] * 5)  # Inicializando lista
+        # Recebendo octetos e CIDR
         values[0:4], values[4] = separate_ip(inputstr)
         # Verificando cada valor
         letters = 'wxyz'
         for i in range(4):
+            # Se octeto não está no intervalo correto, um erro é lançado
             if (values[i] < 0) or (values[i] > 255):
                 raise ValueError(
                     'O valor de ' + letters[i] + ' deve estar entre 0 e 255')
-        # CIDR
+        # CIDR, se não estiver no intervalo correto, um erro é lançado
         if (values[4] < CIDR_MIN) or (values[4] > CIDR_MAX):
             raise ValueError('O valor de n deve estar entre 1 e 30')
+    # Caso a string não obedecer ao Regex, o formato da mesma é inválido
     else:
         raise ValueError('Formato da string não é válido.')
+    # Caso não ocorrer nenhum erro, tudo ocorreu bem
     return True
 
 # Realiza um prompt pedindo pelo endereço IP, checa se o formato é válido.
 
 
 def get_ip_address() -> str:
+    # Input sem checagem
     inputstr = input('Insira um endereço IP (w.x.y.z/n): ')
+    # Verifica se é válido, caso sim é retornado
     if check_ip_address(inputstr):
         return inputstr
+
+
+# Obtendo os valores desejados (endereço de rede, broadcast,  ...) a partir
+# de uma string contendo o endereço IP e o CIDR
 
 
 def calculate_from_ip(ip: str) -> dict:
@@ -101,6 +122,8 @@ def calculate_from_ip(ip: str) -> dict:
     ret['mascara_wildcard'] = c_uint32(
         ~ret['mascara_sub_rede']).value  # Bitwise NOT na
     # máscara de sub-rede retorna a máscara wildcard.
+    # Aqui é necessário utilizar c_uint32 pois o bitwise NOT retorna o complemento
+    # de 2 do valor inteiro, caso não utilizado um valor unsigned.
     # Endereço de rede
     ret['end_rede'] = ip_binario & ret['mascara_sub_rede']
     # End de broadcast
@@ -115,9 +138,13 @@ def calculate_from_ip(ip: str) -> dict:
 
 
 while True:
+    # Bloco try...except verifica se o formato inserido é válido
     try:
+        # Obtém IP e valida
         inputstr = get_ip_address()
+        # Obtém informações a partir do valor inserido
         infos = calculate_from_ip(inputstr)
+        # Imprime informações na tela
         print(
             f'''Valor inserido: {inputstr}
 ================================================================================
@@ -129,8 +156,10 @@ Range: {group_ip(ip_from_binary(infos['range']['start']))} - {group_ip(ip_from_b
 Quantidade de hosts disponíveis: {infos['qnt_hosts']}
 ================================================================================
 ''')
+    # Caso haja algum problema com o input, o mesmo é impresso na tela
     except ValueError as e:
         print('IP inserido é inválido: ' + str(e))
+    # Fim do script
     except KeyboardInterrupt:
         print('\nVolte sempre :)')
         quit()
