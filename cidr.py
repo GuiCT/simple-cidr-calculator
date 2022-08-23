@@ -10,9 +10,10 @@ from ctypes import c_uint32  # Unsigned int utilizado para garantir
 pattern = re.compile(
     r"^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\/[0-9]{1,2}$")
 # Não verifica os valores dos octetos, apenas se o formato em si é válido
+
 # Valor mínimo e máximo do CIDR
-CIDR_MIN = 1
-CIDR_MAX = 30
+CIDR_MIN = 0
+CIDR_MAX = 32
 
 # Separa um ip no formato válido em octetos e CIDR
 
@@ -87,7 +88,7 @@ def check_ip_address(inputstr: str) -> bool:
                     'O valor de ' + letters[i] + ' deve estar entre 0 e 255')
         # CIDR, se não estiver no intervalo correto, um erro é lançado
         if (values[4] < CIDR_MIN) or (values[4] > CIDR_MAX):
-            raise ValueError('O valor de n deve estar entre 1 e 30')
+            raise ValueError(f'O valor de n deve estar entre {CIDR_MIN} e {CIDR_MAX}')
     # Caso a string não obedecer ao Regex, o formato da mesma é inválido
     else:
         raise ValueError('Formato da string não é válido.')
@@ -129,12 +130,19 @@ def calculate_from_ip(ip: str) -> dict:
     # End de broadcast
     ret['end_broadcast'] = ip_binario | ret['mascara_wildcard']
     # Inicio e fim do range
-    ret['range'] = dict()
-    ret['range']['start'] = ret['end_rede'] + 1
-    ret['range']['end'] = ret['end_broadcast'] - 1
+    # Se o CIDR for 31 ou 32, o range é ignorado, visto que não há hosts válidos
+    if cidr < 31:
+        ret['range'] = dict()
+        ret['range']['start'] = ret['end_rede'] + 1
+        ret['range']['end'] = ret['end_broadcast'] - 1
     # Quantidade de hosts disponíveis
-    ret['qnt_hosts'] = 2**(32 - cidr) - 2
+    ret['qnt_hosts'] = max(2**(32 - cidr) - 2, 0)  # Não pode ser negativo
     return ret
+
+
+# Função composta que transforma IP armazenado em um inteiro de 32 bits
+# em um IP formatado como string, utiliza duas funções apresentadas anteriormente.
+def ip_int_to_str(ip): return group_ip(ip_from_binary(ip))
 
 
 while True:
@@ -148,14 +156,17 @@ while True:
         print(
             f'''Valor inserido: {inputstr}
 ================================================================================
-Endereço de rede: {group_ip(ip_from_binary(infos['end_rede']))}
-Endereço de broadcast: {group_ip(ip_from_binary(infos['end_broadcast']))}
-Máscara de sub-rede: {group_ip(ip_from_binary(infos['mascara_sub_rede']))}
-Máscara de wildcard: {group_ip(ip_from_binary(infos['mascara_wildcard']))}
-Range: {group_ip(ip_from_binary(infos['range']['start']))} - {group_ip(ip_from_binary(infos['range']['end']))}
-Quantidade de hosts disponíveis: {infos['qnt_hosts']}
-================================================================================
-''')
+Endereço de rede: {ip_int_to_str(infos['end_rede'])}
+Endereço de broadcast: {ip_int_to_str(infos['end_broadcast'])}
+Máscara de sub-rede: {ip_int_to_str(infos['mascara_sub_rede'])}
+Máscara de wildcard: {ip_int_to_str(infos['mascara_wildcard'])}
+Quantidade de hosts disponíveis: {infos['qnt_hosts']}''')
+        # Verifica se há range, se sim, é impresso
+        if 'range' in infos:
+            print(
+                f'''Range: {ip_int_to_str(infos['range']['start'])} - {ip_int_to_str(infos['range']['end'])}''')
+        # Fim do print
+        print('================================================================================')
     # Caso haja algum problema com o input, o mesmo é impresso na tela
     except ValueError as e:
         print('IP inserido é inválido: ' + str(e))
